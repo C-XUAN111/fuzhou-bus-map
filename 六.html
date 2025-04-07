@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>福州交通数据地图系统</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* 三区域布局 */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    /* 页眉区域 */
+    header {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    /* 地图区域 */
+    .map-container {
+      flex: 1;
+      position: relative;
+    }
+
+    /* 底图库区域 */
+    .basemap-gallery {
+      height: 80px;
+      background: #fff;
+      padding: 1rem;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      gap: 1rem;
+      overflow-x: auto;
+    }
+
+    #viewDiv {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* 控件按钮样式 */
+    .basemap-btn {
+      padding: 8px 16px;
+      border: 1px solid #0079c1;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+  </style>
+
+  <!-- ArcGIS依赖 -->
+  <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.28/"></script>
+</head>
+
+<body>
+  <!-- 页眉 -->
+  <header>
+    <h2>福州市公共交通数据可视化系统</h2>
+    <p>数据发布日期：2024年3月</p>
+  </header>
+
+  <!-- 地图容器 -->
+  <div class="map-container">
+    <div id="viewDiv"></div>
+  </div>
+
+  <!-- 底图库 -->
+  <div class="basemap-gallery">
+    <button class="basemap-btn" data-basemap="streets">街道图</button>
+    <button class="basemap-btn" data-basemap="satellite">卫星图</button>
+    <button class="basemap-btn" data-basemap="hybrid">混合图</button>
+  </div>
+
+  <script>
+    require([
+      "esri/Map",
+      "esri/views/MapView",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/Legend",
+      "esri/widgets/LayerList",
+      "esri/widgets/Search",
+      "esri/widgets/ScaleBar"
+    ], function(
+      Map, MapView, FeatureLayer, 
+      Legend, LayerList, Search, ScaleBar
+    ) {
+      // 初始化地图
+      const map = new Map({
+        basemap: "streets"
+      });
+
+      // 配置视图
+      const view = new MapView({
+        container: "viewDiv",
+        map: map,
+        center: [119.2965, 26.0742],
+        zoom: 12
+      });
+
+      // 专题图层配置
+      const thematicLayers = {
+        // 行政区划（面要素）
+        districts: new FeatureLayer({
+          url: "https://www.geosceneonline.cn/server/rest/services/Hosted/福州市2024年公交站点和线路数据/FeatureServer/2",
+          title: "行政区划",
+          opacity: 0.5
+        }),
+
+        // 公交线路（线要素）
+        busRoutes: new FeatureLayer({
+          url: "https://www.geosceneonline.cn/server/rest/services/Hosted/福州市2024年公交站点和线路数据/FeatureServer/1",
+          title: "公交线路",
+          renderer: {
+            type: "simple",
+            symbol: {
+              type: "simple-line",
+              color: "#1976d2",
+              width: 2
+            }
+          }
+        }),
+
+        // 公交站点（点要素）
+        busStops: new FeatureLayer({
+          url: "https://www.geosceneonline.cn/server/rest/services/Hosted/福州市2024年公交站点和线路数据/FeatureServer/0",
+          title: "公交站点",
+          renderer: {
+            type: "simple",
+            symbol: {
+              type: "simple-marker",
+              color: "#ff9800",
+              size: 8,
+              outline: {
+                color: "white",
+                width: 1
+              }
+            }
+          }
+        })
+      };
+
+      // 添加专题图层
+      map.addMany([
+        thematicLayers.districts,
+        thematicLayers.busRoutes,
+        thematicLayers.busStops
+      ]);
+
+      // 添加地图微件
+      view.ui.add(new ScaleBar({ view }), "bottom-left");
+      view.ui.add(new Search({ view }), "top-right");
+      view.ui.add(new LayerList({ view }), "top-left");
+      view.ui.add(new Legend({ view }), "bottom-right");
+
+      // 底图切换功能
+      document.querySelectorAll(".basemap-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          map.basemap = btn.dataset.basemap;
+        });
+      });
+    });
+  </script>
+</body>
+</html>
